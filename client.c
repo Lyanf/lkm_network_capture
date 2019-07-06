@@ -9,9 +9,9 @@
 #include <unistd.h>
 
 #define SEND_BUFFER_SIZE 1000
-#define RECV_BUFFER_SIZE 10000 * sizeof(struct net_packet)
 
 int done, sock_fd;
+int recv_buffer_size = 10000;
 
 void init_sendmsg(struct msghdr *msg_hdr)
 {
@@ -61,7 +61,7 @@ void init_recvmsg(struct sockaddr_nl *addr, struct msghdr *msg_hdr)
     addr->nl_family = AF_NETLINK;
     addr->nl_pid = getpid();
 
-    nlh_length = NLMSG_SPACE(RECV_BUFFER_SIZE);
+    nlh_length = NLMSG_SPACE(recv_buffer_size * sizeof(struct net_packet));
     nlh = (struct nlmsghdr *)malloc(nlh_length);
 
     iov = (struct iovec *)malloc(sizeof(struct iovec));
@@ -86,6 +86,17 @@ void cleanup(int signum)
     done = 0;
 }
 
+void usage(char *argv[])
+{
+    fprintf(stderr, "Usage:\n\t%s [-f file_name | -w] [-m max_size]\n",
+            argv[0]);
+    fprintf(stderr, "Options:\n\t-f file_name\twrite to file_name\n");
+    fprintf(stderr, "\t-w\t\twrite to stdout\n");
+    fprintf(
+        stderr,
+        "\t-m max_size\tmax packet number (should be consistent with LKM)\n");
+}
+
 int main(int argc, char *argv[])
 {
     int ret, opt;
@@ -97,17 +108,32 @@ int main(int argc, char *argv[])
     char ip_src[INET6_ADDRSTRLEN], ip_dst[INET6_ADDRSTRLEN];
     char *ipv[] = {"ipv4", "ipv6"};
 
-    while ((opt = getopt(argc, argv, "nf:")) != -1) {
+    while ((opt = getopt(argc, argv, "f:wm:")) != -1) {
         switch (opt) {
-        case 'n':
+        case 'm':
+            recv_buffer_size = atoi(optarg);
+            break;
+        case 'w':
+            fp = stdout;
             break;
         case 'f':
             fp = fopen(optarg, "a");
+            if (!fp) {
+                fprintf(stderr, "Open file error!\n");
+                exit(EXIT_FAILURE);
+            } else {
+                printf("Writing to %s...\n", optarg);
+            }
             break;
         default: /* '?' */
-            fprintf(stderr, "Usage: %s [-t nsecs] [-n] name\n", argv[0]);
+            usage(argv);
             exit(EXIT_FAILURE);
         }
+    }
+
+    if (!fp) {
+        printf("No file name specified, using stdout...\n");
+        fp = stdout;
     }
 
     sock_fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_USERSOCK);
@@ -142,7 +168,7 @@ int main(int argc, char *argv[])
     msg = recv_msg(sock_fd, &recvmsg_hdr); // try conecting
 
     if (strlen(msg)) {
-        printf("Begin to capture packets...");
+        printf("Begin to capture packets...\n");
         fflush(stdout);
         done = 1;
         while (done) {
@@ -175,7 +201,7 @@ int main(int argc, char *argv[])
         printf("No response. Please make sure LKM has been loaded.");
     }
 
-    printf("\nCleaning up...\n");
+    printf("Cleaning up...\n");
     close(sock_fd);
     return 0;
 }

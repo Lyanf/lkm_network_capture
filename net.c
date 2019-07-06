@@ -13,6 +13,9 @@
 #include <linux/udp.h>
 #include <net/sock.h>
 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("KaitoHH");
+
 static struct nf_hook_ops ip_ops;
 static struct nf_hook_ops ipv6_ops;
 static struct timer_list my_timer;
@@ -23,7 +26,13 @@ static int activate = 0;
 static struct net_packet *buffer;
 static __u32 head = 0, tail = 0;
 static __u32 max_size = 10000;
+static int interval = 1000;
 static const size_t NET_PACKET_SIZE = sizeof(struct net_packet);
+
+module_param(max_size, int, 0);
+MODULE_PARM_DESC(max_size, "max packet number in the buffer");
+module_param(interval, int, 0);
+MODULE_PARM_DESC(interval, "time interval of sending packets (ms)");
 
 static void copy_buffer(__u8 *mbuffer, __u32 lhead, __u32 ltail)
 {
@@ -101,7 +110,7 @@ static void send_packet_timer_callback(struct timer_list *timer)
     int ret = send_msg((void *)&cur_head, -1, 0);
     tail = cur_head;
     if (ret == 0) {
-        mod_timer(&my_timer, jiffies + msecs_to_jiffies(1000));
+        mod_timer(&my_timer, jiffies + msecs_to_jiffies(interval));
     } else {
         activate = 0;
         printk(KERN_INFO "stopped capturing.\n");
@@ -117,7 +126,7 @@ static void begin_capture(struct sk_buff *skb)
         if (!activate) {
             activate = 1;
             printk(KERN_INFO "begin capturing...\n");
-            mod_timer(&my_timer, jiffies + msecs_to_jiffies(1000));
+            mod_timer(&my_timer, jiffies + msecs_to_jiffies(interval));
         }
     }
 }
@@ -126,7 +135,7 @@ static void insert_packet(struct net_packet packet)
 {
     __u32 next = (head + 1) % max_size;
     if (next == tail) {
-        printk(KERN_WARNING "message buffer overflow.");
+        printk(KERN_WARNING "message buffer overflow. Consider increasing max_size or decreasing time interval.");
     } else {
         buffer[head] = packet;
         head = next;
