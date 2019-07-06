@@ -1,4 +1,3 @@
-#include "packet.h"
 #include <linux/ip.h>
 #include <linux/ipv6.h>
 #include <linux/kernel.h>
@@ -11,7 +10,9 @@
 #include <linux/tcp.h>
 #include <linux/timer.h>
 #include <linux/udp.h>
+#include <linux/version.h>
 #include <net/sock.h>
+#include "packet.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("KaitoHH");
@@ -104,7 +105,11 @@ static const char *recv_msg(struct sk_buff *skb, __u32 *pid)
     return nlmsg_data(nlh);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 static void send_packet_timer_callback(struct timer_list *timer)
+#else
+static void send_packet_timer_callback(unsigned long data)
+#endif
 {
     int cur_head = head;
     int ret = send_msg((void *)&cur_head, -1, 0);
@@ -135,7 +140,8 @@ static void insert_packet(struct net_packet packet)
 {
     __u32 next = (head + 1) % max_size;
     if (next == tail) {
-        printk(KERN_WARNING "message buffer overflow. Consider increasing max_size or decreasing time interval.");
+        printk(KERN_WARNING "message buffer overflow. Consider increasing "
+                            "max_size or decreasing time interval.");
     } else {
         buffer[head] = packet;
         head = next;
@@ -221,7 +227,11 @@ static int __init register_hook(void)
     ipv6_ops.priority = NF_IP6_PRI_FIRST;
     nf_register_net_hook(&init_net, &ipv6_ops);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
     timer_setup(&my_timer, send_packet_timer_callback, 0);
+#else
+    setup_timer(&my_timer, send_packet_timer_callback, 0);
+#endif
 
     buffer =
         (struct net_packet *)kmalloc(max_size * NET_PACKET_SIZE, GFP_KERNEL);

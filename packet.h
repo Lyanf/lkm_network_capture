@@ -1,7 +1,8 @@
 #ifndef PACKET_H
 #define PACKET_H
-
-#include <linux/ipv6.h>
+#ifndef _ARPA_INET_H_
+#include <linux/in6.h>
+#endif
 #include <linux/types.h>
 
 #define NETLINK_GROUP 1

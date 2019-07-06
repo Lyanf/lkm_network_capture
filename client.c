@@ -1,4 +1,3 @@
-#include "packet.h"
 #include <arpa/inet.h>
 #include <linux/netlink.h>
 #include <signal.h>
@@ -7,6 +6,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include "packet.h"
 
 #define SEND_BUFFER_SIZE 1000
 
