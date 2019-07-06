@@ -23,7 +23,7 @@ You must also have `gcc` and `make` installed. Install by following commands on 
 apt-get install build-essential
 ```
 
-### compile
+### Compile
 Compile the module along with the user space program is simple.
 
 ```
@@ -34,7 +34,7 @@ make
 If no error, a linux kernel module `net.ko` and a user sapce program `client` will produce.
 
 ## Usage
-### kernel space
+### Kernel space
 Using following command to load the module
 
 ```bash
@@ -48,7 +48,7 @@ insmod net.ko interval=10      # change the time interval to 10ms (default: 1000
 insmod net.ko max_size=20000   # change the max packet number in the buffer (default: 10000)
 ```
 
-### user space
+### User space
 You must have `root` premission to execute user space program.
 
 ``` bash
@@ -67,8 +67,8 @@ Each record is formatted as follows
 
 - type: `ipv4` or `ipv6`
 - protocol: IP protocol numbers (see [List of IP protocol numbers](https://en.wikipedia.org/wiki/List_of_IP_protocol_numbers))
-- address: ip address for source and destination
-- port: port for source and destination (only for TCP or UDP protocols)
+- address: IP address for source and destination
+- port: port for source and destination (only for TCP or UDP protocol)
 
 ## Environment
 Tested on the following kernel version.
